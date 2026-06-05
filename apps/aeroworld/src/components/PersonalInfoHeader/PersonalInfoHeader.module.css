@@ -1,0 +1,52 @@
+.NXKOuser-personal-info-section{
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    padding: 10px;
+    padding-right: 20px;
+    width: 100%;
+    height: 12%;
+    min-height: 100px;
+    border-radius: 0 0 50% 0%;
+    box-shadow: 0px 3px 15px rgba(0, 0, 0, 0.7);
+    background: url('/images/bg3.png');
+    background-size: 100%;
+    background-repeat: repeat-y;
+}
+
+.NXKOuser-userinfo {
+    display: flex;
+    flex-direction: column;
+    padding: 0 10px 0 10px;
+    border-radius: 8px;
+    width: fit-content;
+    max-width: 250px; 
+}
+
+.NXKOuser-username {
+    font-size: 28px;
+    color: var(--window-border-color); 
+    font-family: var(--font-opt2);
+}
+
+.NXKOuser-username-id {
+    text-overflow: ellipsis;
+    white-space: normal; 
+    font-size: 14px;
+    color: #808080;
+    font-family: var(--font-opt2);
+    text-shadow: var(--aero-text-highlight);
+}
+.online-status{
+  font-family: var(--font-opt2);
+  font-size: 14px;
+  font-weight: bold;
+  color:#5aab5d;
+  margin-top: 10px;
+
+  &.inactive{
+    color:#9a9a9a;
+    font-weight:normal;
+  }
+}

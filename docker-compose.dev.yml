@@ -1,0 +1,49 @@
+services:
+  aeroworld:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: apps/aeroworld/Dockerfile
+      target: dev
+    restart: "no"
+    environment:
+      - NODE_ENV=development
+      - DOCKER_ENV=yes
+      - PORT=${CLI_PORT}
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+      - CHOKIDAR_INTERVAL=250
+      - NX_DAEMON=false
+    volumes:
+      - ./:/app:cached
+      - aeroworld_node_modules:/app/node_modules
+      - aeroworld_next_cache:/app/apps/aeroworld/.next
+    command: ["sh", "-lc", "npx nx dev aeroworld --port $CLI_PORT"]
+
+  server:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+      target: dev
+    restart: "no"
+    environment:
+      - NODE_ENV=development
+      - DOCKER_ENV=yes
+      - PORT=${API_PORT}
+      - DATABASE_URL=${DATABASE_URL}
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+      - CHOKIDAR_INTERVAL=250
+      - NX_DAEMON=false
+    volumes:
+      - ./:/app:cached
+      - server_node_modules:/app/node_modules
+    command: ["sh", "-lc", "npx nodemon --legacy-watch --watch ./apps/server/src --ext ts,json,js --ignore ./apps/server/dist/** --exec \"npx nx build server && node apps/server/dist/main.js\""]
+
+volumes:
+  aeroworld_node_modules:
+  aeroworld_next_cache:
+  server_node_modules:

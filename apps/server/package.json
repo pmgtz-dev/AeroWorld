@@ -1,0 +1,85 @@
+{
+  "name": "@aeroworld/server",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start:dev": "npx nest start --watch --port $API_PORT"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "webpack-cli build",
+          "args": [
+            "--node-env=production"
+          ],
+          "cwd": "apps/server"
+        },
+        "configurations": {
+          "development": {
+            "args": [
+              "--node-env=development"
+            ]
+          }
+        }
+      },
+      "prune-lockfile": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "executor": "@nx/js:prune-lockfile",
+        "outputs": [
+          "{workspaceRoot}/apps/server/dist/package.json",
+          "{workspaceRoot}/apps/server/dist/package-lock.json"
+        ],
+        "options": {
+          "buildTarget": "build"
+        }
+      },
+      "copy-workspace-modules": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "outputs": [
+          "{workspaceRoot}/apps/server/dist/workspace_modules"
+        ],
+        "executor": "@nx/js:copy-workspace-modules",
+        "options": {
+          "buildTarget": "build"
+        }
+      },
+      "prune": {
+        "dependsOn": [
+          "prune-lockfile",
+          "copy-workspace-modules"
+        ],
+        "executor": "nx:noop"
+      },
+      "serve": {
+        "continuous": true,
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "buildTarget": "@aeroworld/server:build",
+          "runBuildTargetDependencies": false,
+          "inspect": false
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "@aeroworld/server:build:development"
+          },
+          "production": {
+            "buildTarget": "@aeroworld/server:build:production"
+          }
+        }
+      }
+    }
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,277 @@
+.inactive-chats-wrapper {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+.inactive-chats {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+.inactive-chats-top-fade,
+.inactive-chats-bottom-fade {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  right: 12px;
+  height: 50px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  background-size: auto 50px;
+  background-repeat: repeat-x;
+}
+
+.inactive-chats-top-fade {
+  background-image: url('/images/halftoneTop.png');
+  top: 0;
+  &.fade-top{
+    opacity: 1;
+  }
+}
+
+.inactive-chats-bottom-fade {
+  bottom: 0;
+  background-image: url('/images/halftoneBottom.png');
+  &.fade-bottom{
+    opacity: 1;
+  }
+}
+
+.inactive-chat {
+    margin: 6px 10px 0 10px;
+    width: calc(100% - 10px);
+    height: 70px;
+    padding: 0;
+    border: 1px solid #224b59;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transform: scaleX(var(--scale-width, 1));
+    transition: transform 0.2s ease;
+    background: var(--blue-glassy-bg);
+    background-size: 100% 8px, cover, cover;
+    background-position: bottom, center, center;
+    background-repeat: no-repeat;
+    box-shadow: 0 2px 4px #2b4564bf;
+}
+.inactive-chat:first-child{
+    margin-top: 16px;
+}
+.inactive-chat:last-child{
+    margin-bottom: 10px;
+}
+.inactive-chat-glare{
+    position: absolute;
+    top: 4px;
+    right: 5%;
+    width: 90%;
+    height: 15px;
+    border-radius: 10px 10px 0 0;
+    background: linear-gradient(rgba(255, 255, 255, 0.7), transparent);
+    pointer-events: none;
+}
+.inactive-chat-content-wrapper{
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    gap: 8px;
+    inset: 0;         
+    padding: 10px 10px 10px 10px;
+    &.search-res{
+      padding: 8px 10px 10px 10px;
+    }
+}
+
+.inactive-chat-general-info {
+  z-index: 2;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  text-align: start;
+  &.search-res{
+    gap: 18px;
+  }
+}
+.inactive-chat-username {
+  font: var(--font);
+  font-weight: bold;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90%;
+}
+
+.inactive-chat-last-message {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 2px;
+}
+
+.inactive-chat-last-message-text {
+    font: var(--font-8pt);
+    color: var(--window-border-color);
+    display: -webkit-box;
+    -webkit-line-clamp: 2; 
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal; 
+    word-break: break-word;
+    max-height: 2.6em;
+}
+
+.inactive-chat-last-message-sent {
+    min-width: 40px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+        white-space: normal; 
+    word-break: break-word;
+    max-height: 2.3em;
+    text-overflow: ellipsis;
+    font-size: 11px;
+    color: #668099;
+    font-weight: 600;
+    font-family: var(--font-8pt);
+}
+.inactive-chat-unread-messages-count {
+    font: var(--font-8pt);
+    margin-left: 0;
+    background: transparent;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 0px 10px;
+    border-radius: 12px;
+    border: 2px solid #4c6b89;
+    height: 20px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+}
+.add-new-chat{
+  display: flex; 
+  z-index: 2;
+  background-image: url('/images/plusik.png');
+  background-size: contain;    
+  background-repeat: no-repeat;  
+  background-position: center;
+  width: 40px;
+  height: 40px;
+  position: absolute;
+  bottom: 10px;
+  right: 15px;
+  transition: opacity ease-in-out 0.4s,
+              transform 0.4s ease,
+              filter ease-in-out 0.3s;
+
+  &:hover{
+    cursor: pointer;
+    filter: brightness(1.15) contrast(1.18) saturate(1.3);
+  }
+  &.hidden{
+    z-index: -1;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+.user-search-wrapper{
+  position: relative;
+  max-height: 70vh; 
+  padding: 30px 20px 20px 5px; 
+  border: 1px var(--window-border-color) solid;
+  background-color: var(--body-bg-color);
+}
+.user-search{
+  display: flex;
+  flex-direction: row;
+  gap: 7px;
+}
+.search {
+  width: 35px;
+  height: 35px;
+  background-image: url('/images/search.png');
+  background-size: contain;    
+  background-repeat: no-repeat;  
+  background-position: center;
+  &:hover{
+    cursor: pointer;
+  }
+}
+
+.search-results{
+    overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+.search-result{
+    margin-top: 10px;
+    width: 100%;
+    position: relative;
+    height: 80px;
+    border-radius: 10px;
+    background: linear-gradient(transparent 0%, var(--navy-blue) 80%, var(--navy-blue) 100%), 
+                radial-gradient(ellipse 70% 60% at center 80%, rgb(var(--light-blue-default)) 0%, rgba(var(--light-blue-default), 0.4) 50%, rgba(var(--light-blue-default), 0) 80%),
+                linear-gradient(var(--navy-blue) 0%, var(--blue-default) 90%);
+    background-size: 100% 8px, cover, cover;
+    background-position: bottom, center, center;
+    background-repeat: no-repeat;
+    transition: background 0.3s;
+    box-shadow: 0px 2px 4px #2b4564bf;
+    border: 1px solid #224b59;
+    position: relative;
+    cursor: pointer;
+}
+.search-result-name{
+  font: var(--font);
+  font-size: 15px;
+  font-weight: bold;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  padding-top: 4px;
+}
+.search-result-online-status{
+  text-shadow: var(--aero-text-highlight);
+  font-family: var(--font-opt2);
+  font-size: 13px;
+  font-weight: bold;
+  &.active{
+    color:#5aab5d;
+  }
+}
+.search-result-username{
+  position: absolute;
+  left: 75px;  
+  right: 10px;  
+  top: 27px;
+  text-overflow: ellipsis;
+  width:auto;
+  font-size: 13px;
+  color: #808080;
+  white-space: nowrap;
+  font-family: var(--font-opt2);
+  text-shadow: var(--aero-text-highlight);
+  overflow: hidden;
+  padding: 8px 0 8px 10px ;
+}

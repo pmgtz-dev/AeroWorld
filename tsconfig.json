@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": true,
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/aeroworld"
+    },
+    {
+      "path": "./apps/server-e2e"
+    },
+    {
+      "path": "./apps/server"
+    }
+  ]
+}

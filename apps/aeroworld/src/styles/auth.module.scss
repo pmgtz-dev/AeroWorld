@@ -1,0 +1,143 @@
+.auth {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  position: relative;
+  background: url('/images/bgauth.jpg');
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.register-title {
+  margin-top: 30px;
+  width: 30%;
+  text-align: center;
+  color: white;
+}
+
+.auth-container {
+  position: relative;
+  width: 50%;
+  min-width: 50vw;
+  min-height: 70%;
+  display: flex;
+  margin: 30px 27.5% auto auto;
+}
+
+.form-container{
+  z-index: 2;
+  width: 100%;
+  background-image: url('/images/test3.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100%;
+}
+.register-form {
+  padding: 8% 25% 8% 35%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  position: relative;
+}
+
+.blur-mask {
+  mask-image: url('/images/mask2.png');
+  -webkit-mask-image: url('/images/mask2.png');
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  mask-size: contain;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-position: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.register-form label {
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  color: #ffffff;
+  font: var(--font);
+  font-size: 11pt;
+}
+
+.register-form input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+.confirm-label{
+  position: relative;
+  z-index: 2;
+  color: white;
+  text-shadow: var(--aero-text-shadow);
+  font-weight: bold;
+}
+.register-button {
+  z-index: 1;
+  position: relative;
+  padding: 13px;
+  margin-top: 30px;
+  border: 1px #7ca7be solid;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.5s ease-in-out, box-shadow 0.5s ease-in-out;
+  box-shadow: 0 0 13px rgba(61, 169, 219, 0.3), 
+                0 -2px 12px rgba(0, 174, 255, 0.2);
+  background: linear-gradient(180deg, #91d1ff 0%, #b2ecff77 30%, #9aeeff40 100%);
+  overflow: hidden; 
+}
+.register-button::after{
+  content: "";
+  transition: opacity 0.5s ease-in-out,
+  border-color 0.5s ease-in-out;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  z-index: 0;
+  background: linear-gradient(180deg, #d3f2ff 0%, #c3f0ff77 50%, #9aeeff40 100%);
+}
+.register-button:hover {
+  border-color: #9ccce2;
+  box-shadow: 0 0 13px rgba(194, 236, 255, 0.7), 
+                0 -2px 12px rgba(190, 234, 255, 0.6);
+  &::after{
+    opacity: 1;
+  }
+}
+.register-button:active{
+  transition: none;
+  border-color: #7ca7be;
+  &::after{
+    transition: none;
+    opacity: 0;
+  }
+}
+.change-method{
+  padding: 3px 8px 3px 8px;
+  border-radius: 3px;
+  border: 2px white dashed;
+  color: white;
+  text-shadow: var(--aero-text-shadow);
+  margin-left: auto;
+  font-size: 11pt;
+  text-decoration: none;
+  &:hover{
+    cursor: pointer;
+  }
+}

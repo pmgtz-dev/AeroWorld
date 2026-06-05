@@ -1,0 +1,55 @@
+.aero-frame-header{
+  display:flex;
+  flex-direction: row;
+}
+.profile-window{
+  overflow: hidden;
+  border: 1px var(--window-border-color) solid;
+  background-color: var(--body-bg-color);
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.profile-header{
+  display:flex;
+  align-items:center;
+}
+
+.profile-avatar img{
+  width:65px;
+  height:65px;
+  border-radius:50%;
+  border:2px solid #264969;
+}
+.interaction-buttons{
+  margin-right: auto;
+  display: flex;
+  flex-direction: row-reverse;
+}
+.about-user-section{
+  padding: 15px;
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
+}
+
+.about-user{
+  border: 1px var(--window-border-color) solid;
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+}
+.about-user-header{
+  padding: 2px 10px;
+  background: 
+  linear-gradient(45deg,rgba(161, 203, 255, 0) 80%, rgba(173, 201, 227, 0.5) 80.5%,rgb(173, 201, 227) 100% ),
+  linear-gradient(90deg, #122c50 0%, #7090bb 80%);
+  font-family: var(--font-opt2);
+  font-size: 14px;
+}
+.about-user-text{
+  padding: 10px;
+  color:#264969;
+  font-family: var(--font-opt2);
+  font-size: 14px;
+}
