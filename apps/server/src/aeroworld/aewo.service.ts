@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { ApiException } from "../common/exceptions/ApiException";
 import { User } from '../auth/user.entity';
 import { Message } from './entities/message.entity';
@@ -234,6 +234,9 @@ export class AewoService {
       chatId,
       message: messagePayload,
     });
+    const otherUserId = chat.user0.id === senderId ? chat.user1.id : chat.user0.id;
+    this.realtimeGateway.emitToUser(senderId, WS_EVENTS.CHAT_LIST_REFRESH, { chatId });
+    this.realtimeGateway.emitToUser(otherUserId, WS_EVENTS.CHAT_LIST_REFRESH, { chatId });
     return messagePayload;
   }
 
@@ -386,13 +389,20 @@ export class AewoService {
             { userId }
           )
           .getCount();
-        return {
+        return visibleMessage
+          ? {
           chat: { id: chat.id },
           otherUser: {
             id: otherUser.id,
             username: otherUser.username,
             nickname: otherUser.nickname,
             avatarUrl: otherUser.avatar_url,
+            backgroundImageUrl: otherUser.background_image_url ?? null,
+            bio: otherUser.bio ?? null,
+            dateOfBirth: otherUser.date_of_birth ?? null,
+            showYearOfBirth: !!otherUser.show_year_of_birth,
+            likeStuff: otherUser.like_stuff ?? null,
+            dislikeStuff: otherUser.dislike_stuff ?? null,
             lastSeen: otherUser.last_seen,
           },
           lastMessage: visibleMessage
@@ -406,10 +416,15 @@ export class AewoService {
               }
             : null,
           unreadCount,
-        };
+        }
+          : null;
       })
     );
-    return mappedChats.sort((a, b) => {
+    const visibleChats = mappedChats.filter(
+      (chat): chat is NonNullable<typeof chat> => chat != null
+    );
+
+    return visibleChats.sort((a, b) => {
       const aTime = a.lastMessage?.createdAt
         ? new Date(a.lastMessage.createdAt).getTime()
         : 0;
@@ -418,6 +433,82 @@ export class AewoService {
         : 0;
       return bTime - aTime;
     });
+  }
+
+  async deleteChat(chatId: number, userId: number, scope: "self" | "other" | "all") {
+    if (scope !== "self" && scope !== "other" && scope !== "all") {
+      throw new ApiException("INVALID_DELETE_SCOPE");
+    }
+
+    const chat = await this.chatsRepo.findOne({
+      where: { id: chatId },
+    });
+
+    if (!chat) {
+      throw new ApiException("CHAT_NOT_FOUND");
+    }
+
+    const isParticipant = chat.user0.id === userId || chat.user1.id === userId;
+    if (!isParticipant) {
+      throw new ApiException("FORBIDDEN");
+    }
+
+    if (scope === "all") {
+      await this.chatsRepo.delete(chatId);
+      return { ok: true, chatId, scope };
+    }
+
+    const targetUserId = chat.user0.id === userId
+      ? scope === "self"
+        ? userId
+        : chat.user1.id
+      : scope === "self"
+        ? userId
+        : chat.user0.id;
+
+    const messages = await this.messagesRepo.find({
+      where: {
+        chat: { id: chatId },
+      },
+      select: ["id", "deleted_for_user_id"],
+    });
+
+    const idsToHide = messages
+      .filter((message) => message.deleted_for_user_id == null)
+      .map((message) => message.id);
+    const idsToDelete = messages
+      .filter(
+        (message) =>
+          message.deleted_for_user_id != null &&
+          Number(message.deleted_for_user_id) !== targetUserId
+      )
+      .map((message) => message.id);
+
+    if (idsToHide.length) {
+      await this.messagesRepo.update(
+        { id: In(idsToHide) },
+        { deleted_for_user_id: targetUserId }
+      );
+    }
+
+    if (idsToDelete.length) {
+      await this.messagesRepo.delete(idsToDelete);
+    }
+
+    const remainingMessagesCount = await this.messagesRepo.count({
+      where: { chat: { id: chatId } },
+    });
+
+    if (remainingMessagesCount === 0) {
+      await this.chatsRepo.delete(chatId);
+    }
+
+    return {
+      ok: true,
+      chatId,
+      scope,
+      deletedMessageIds: [...idsToHide, ...idsToDelete],
+    };
   }
 
 }

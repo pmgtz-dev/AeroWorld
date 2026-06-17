@@ -397,9 +397,6 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  &:focus,&:focus-visible{
-    outline: none;
-  }
 }
 .music-player-toggle-image{
   display: block;
@@ -969,9 +966,6 @@
   &:active img{
     transform: scale(1);
   }
-  &:focus,&:focus-visible{
-    outline: none;
-  }
 }
 .update-log{
   width: 100%;
@@ -1072,10 +1066,7 @@
   &::-webkit-scrollbar{
     display: none;
   }
-
-  &:focus,
-  &:focus-visible,
-  &:active{
+  &:focus, &:focus-visible, &:active{
     outline: none;
     border: 1px groove #8d8d8d;
     box-shadow: 0 0 1px rgba(0, 0, 0, 0.6) inset;

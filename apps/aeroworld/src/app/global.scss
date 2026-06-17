@@ -22,6 +22,9 @@
     --blue-glassy-bg: linear-gradient(transparent 0%, var(--navy-blue) 80%, var(--navy-blue) 100%),
       radial-gradient(ellipse 70% 60% at center 80%, rgb(var(--light-blue-default)) 0%, rgba(var(--light-blue-default), 0.4) 50%, rgba(var(--light-blue-default), 0) 80%),
       linear-gradient(var(--navy-blue) 0%, var(--blue-default) 90%);
+    --red-glassy-bg: linear-gradient(transparent 0%, #8f2f39 80%, #8f2f39 100%),
+      radial-gradient(ellipse 70% 60% at center 80%, rgb(255, 214, 228) 0%, rgba(255, 214, 228, 0.47) 50%, rgba(255, 214, 228, 0) 80%),
+      linear-gradient(#c86f7a 0%, #a94553 48%, #853543 90%);
     --font: 11pt "Segoe UI","SegoeUI","Noto Sans",sans-serif;
     --font-8pt: 8pt "Segoe UI","SegoeUI","Noto Sans",sans-serif;
     --font-opt2: "Courier New", Courier, monospace;
@@ -71,6 +74,7 @@
     --window-border-color: #000000b3;
     --window-background-glass-stripes: linear-gradient(135deg, #fff5 70px, transparent 100px), linear-gradient(225deg, #fff5 70px, transparent 100px), linear-gradient(54deg, #0002 0 4%, #6661 6% 6%, #0002 8% 10%, #0002 15% 16%, #aaa1 17% 18%, #0002 23% 24%, #bbb2 25% 26%, #0002 31% 33%, #0002 34% 34.5%, #bbb2 36% 40%, #0002 41% 41.5%, #bbb2 44% 45%, #bbb2 46% 47%, #0002 48% 49%, #0002 50% 50.5%, #0002 56% 56.5%, #bbb2 57% 63%, #0002 67% 69%, #bbb2 69.5% 70%, #0002 73.5% 74%, #bbb2 74.5% 79%, #0002 80% 84%, #aaa2 85% 86%, #0002 87%, #bbb1 90%) left center / 100vw 100vh no-repeat fixed;
     --aero-text-highlight: 0 0 13px #fff, 0 0 13px #fff, 0 0 13px #fff, 0 0 13px #fff, 0 0 13px #fff, 0 0 13px #fff, 0 0 13px #fff, 0 0 13px #fff;
+    --aero-text-highlight-duller: 0 0 13px #eee, 0 0 13px #eee, 0 0 13px #eee, 0 0 13px #eee, 0 0 13px #eee, 0 0 13px #eee, 0 0 13px #eee, 0 0 13px #eee;
     --aero-text-shadow: 1px 1.5px 2px rgb(0, 73, 116), 0px -1px 3px rgb(0, 85, 135);
     --inset-box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.18) inset, 1px 0px 2px rgba(0, 0, 0, 0.18) inset, -1px 0px 2px rgba(0, 0, 0, 0.18) inset, 0px -1px 2px rgba(0, 0, 0, 0.18) inset;
 }
@@ -101,6 +105,44 @@ body {
     align-items: center;
     height: 100vh;
     overflow: hidden;
+}
+button{
+  &:focus,&:focus-visible{
+    outline: none;
+  }
+}
+.menu{
+  z-index: 30;
+  position: absolute;
+  min-width: 118px;
+  padding: 0;
+  border: 1px solid #6f8fb7;
+  border-radius: 2px;
+  transform: translate(6px, -4px);
+  background: linear-gradient(90deg, rgba(227, 238, 251, 0.95) 0 26px, rgba(247, 250, 254, 0.98) 26px),
+              #f7fafe;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.95), 2px 3px 8px rgba(0, 0, 0, 0.28);
+}
+
+.menu-item{
+  display: block;
+  width: 100%;
+  min-height: 24px;
+  padding: 3px 24px 3px 31px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.menu-item:hover{
+  border-color: #7da2ce;
+  background: linear-gradient(#eaf4ff, #cde7ff);
 }
 #root {
     height: 100%;
@@ -136,7 +178,13 @@ body {
     cursor: pointer;
     transition: background 0.3s;
     width: 40px;
-}
+    &:hover{
+      transform: scale(0.92);
+    }
+    &:active{
+      transform: scale(1);
+    }
+  }
 
 // Userpics
 
@@ -202,7 +250,116 @@ body {
     }
 }
 
+// Deleting stuff menu
+
+.delete-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 29, 48, 0.22);
+}
+
+.delete-dialog-frame {
+    position: relative;
+    padding: 4px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.7) 0%, rgba(112, 186, 206, 0.8) 100%);
+    border: 1px groove #52718c;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+.delete-dialog {
+    position: relative;
+    min-height: 0;
+    background: linear-gradient(180deg, rgba(246, 252, 255, 0.98) 0%, rgba(219, 237, 250, 0.97) 52%, rgba(191, 220, 241, 0.98) 100%);
+    border: 1px groove #52718c;
+    box-shadow: var(--inset-box-shadow);
+    box-sizing: border-box;
+    padding: 30px 16px;
+}
+
+.delete-dialog-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+}
+
+.delete-dialog-confirm-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 4px;
+    text-align: center;
+}
+
+.delete-dialog-confirm-title {
+    font: var(--font);
+    font-size: 16px;
+    font-weight: bold;
+    color: #1f517b;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.delete-dialog-confirm-subtitle {
+    font: var(--font);
+    font-size: 12px;
+    color: #cf0026;
+    max-width: 200px;
+    line-height: 1.1;
+    margin-top: 8px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+.delete-option {
+  width: 200px;
+  border: 1px solid #224b59;
+  align-items: center;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--blue-glassy-bg);
+  background-size: 100% 8px, cover, cover;
+  background-position: bottom, center, center;
+  background-repeat: no-repeat;
+  box-shadow: 0 2px 4px #2b4564bf;
+  transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+  font: var(--font);
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1.1;
+  color: #ffffff;
+  text-shadow: 0 1px 0 rgba(4, 27, 49, 0.85);
+  padding: 8px 12px 14px;
+  &:hover {
+    filter: brightness(1.08) saturate(1.1);
+  }
+  &.cancel{
+    border-color: #7b2d38;
+    background: var(--red-glassy-bg);
+    background-size: 100% 8px, cover, cover;
+    background-position: bottom, center, center;
+    background-repeat: no-repeat;
+    box-shadow: 0 2px 4px rgba(87, 24, 35, 0.6);
+    padding: 11px 12px 13px;
+  }
+}
+
+.delete-option-glare {
+  position: absolute;
+  top: 2px;
+  right: 5%;
+  width: 90%;
+  height: 10px;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(rgba(255, 255, 255, 0.7), transparent);
+  pointer-events: none;
+}
+
 // Scrollbars
+
 ::-webkit-scrollbar {
     width: 12px
 }
@@ -461,16 +618,26 @@ body {
   }
 }
 
+.window-minimizing{
+  transform-origin: left bottom;
+  transition: transform 280ms ease, opacity 280ms ease, filter 280ms ease;
+  transform: scale(0.02);
+  opacity: 0;
+  filter: blur(1px);
+  pointer-events: none;
+}
+
 .aero-title{
   font: var(--font);
   color: var(--window-border-color);
   margin: 0 0 0 12px;
   text-shadow: var(--aero-text-highlight);
   &.in-active-chat{
-    margin: 8px auto 0 10px;
+    margin: 2px auto 0 10px;
   }
   &.in-active-chat > .username {
     cursor: pointer;
+    margin-top: 8px;
   }
 }
 .typing-dots::after {
@@ -504,7 +671,7 @@ body {
   height: 19px;
   width: 29px;
   transition: opacity 0.3s ease, box-shadow 0.4s ease, border-color 0.3s ease;
-
+  
   &.inactive {
     --control-background: radial-gradient(circle, rgba(0,0,0,0.05) 0%, rgba(0, 20, 48, 0.15) 80%);
     --control-background-hovered: rgba(0, 0, 0, 0);
@@ -587,7 +754,7 @@ body {
   background: var(--aero-close-button-label) no-repeat 50%, var(--control-background), var(--control-background-close);
   box-shadow: var(--control-inset-shadow);
   transition: opacity 0.3s ease, box-shadow 0.4s ease, border-color 0.3s ease;
-
+  
   &::before,
   &::after {
     content: "";

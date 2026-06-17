@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
+    "date-fns": "^4.4.0",
     "music-metadata": "^11.12.3",
     "next": "~15.2.4",
     "react": "19.0.0",

@@ -38,7 +38,6 @@ const Register: FC = () => {
     if (!res.ok) {
       alert(data.message || "Ошибка!");
     } else {
-      alert("Регистрация успешна!");
       router.push("/home");
     }
 
@@ -60,6 +59,7 @@ const Register: FC = () => {
                 name="name"
                 placeholder="Отображаемое имя..."
                 className="retro-input"
+                maxLength={25}
               />
             </label>
 
@@ -70,6 +70,7 @@ const Register: FC = () => {
                 name="password"
                 placeholder="Введите пароль..."
                 className="retro-input"
+                maxLength={25}
               />
             </label>
 
@@ -80,6 +81,7 @@ const Register: FC = () => {
                 name="confirmPassword"
                 placeholder="Повторите пароль..."
                 className="retro-input"
+                maxLength={25}
               />
             </label>
             <label className={styles["auth-label"]}>
@@ -89,6 +91,7 @@ const Register: FC = () => {
                 name="username"
                 placeholder="Имя пользователя..."
                 className="retro-input"
+                maxLength={15}
               />
             </label>
 

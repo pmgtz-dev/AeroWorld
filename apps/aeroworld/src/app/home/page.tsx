@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import styles from "@/styles/home.module.scss";
+import { useRouter } from "next/navigation";
 
 import PersonalInfoHeader from "@/components/PersonalInfoHeader/PersonalInfoHeader";
 import ChatList from "@/components/ChatList/ChatList";
@@ -12,9 +13,10 @@ import { getSocket } from "@/lib/socket/socket";
 import { WS_EVENTS } from "@/lib/socket/events";
 
 export default function HomePage() {
-  const [sidebarWidth, setSidebarWidth] = useState(30);
+  const [sidebarWidth, setSidebarWidth] = useState(24);
   const [user, setUser] = useState<any>(null);
   const { activeUser } = useActiveChat();
+  const router = useRouter();
 
   useEffect(() => {
     (async () => {
@@ -23,6 +25,10 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
+      if (res.status === 401) {
+        router.replace("/auth/signup");
+        return;
+      }
     try {
       const data = await res.json();
       setUser(data.user);
@@ -30,6 +36,20 @@ export default function HomePage() {
       alert("Ошибка парсинга ответа от сервера");
     }
     })();
+  }, [router]);
+
+  useEffect(() => {
+    const handleProfileUpdated = (event: Event) => {
+      const nextUser = (event as CustomEvent).detail;
+      if (!nextUser) return;
+      setUser(nextUser);
+    };
+
+    window.addEventListener("aeroworld-profile-updated", handleProfileUpdated);
+
+    return () => {
+      window.removeEventListener("aeroworld-profile-updated", handleProfileUpdated);
+    };
   }, []);
   
   
@@ -106,7 +126,7 @@ export default function HomePage() {
     const onMouseMove = (e: MouseEvent) => {
       const pageWidth = window.innerWidth;
       const newWidth = (e.clientX / pageWidth) * 100;
-      if (newWidth > 15 && newWidth < 50) {
+      if (newWidth > 19 && newWidth < 50) {
         setSidebarWidth(newWidth);
       }
     };
@@ -126,7 +146,7 @@ export default function HomePage() {
         className={styles["myNXKO-left"]}
         style={{ width: `${sidebarWidth}%` }}
       >
-        <PersonalInfoHeader user={user}/>
+        <PersonalInfoHeader user={user} showEditBadge />
         <ChatList />
         <div className={styles["blue-cyan-strip"]}></div>
         <AewoInfo />

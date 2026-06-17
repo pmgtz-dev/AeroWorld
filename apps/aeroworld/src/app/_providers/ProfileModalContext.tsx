@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { User } from "@/types/User";
 
 interface ProfileModalState {
@@ -13,9 +14,14 @@ interface ProfileModalState {
 const ProfileModalContext = createContext<ProfileModalState | null>(null);
 
 export const ProfileModalProvider = ({ children }: { children: ReactNode }) => {
-  
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    setIsOpen(false);
+    setUser(null);
+  }, [pathname]);
 
   const openProfile = (u: User) => {
     setUser(u);

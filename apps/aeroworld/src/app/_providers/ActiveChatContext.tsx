@@ -1,11 +1,11 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction } from "react";
 import { User } from "@/types/User";
 
 interface ActiveChatContextState {
   activeUser: User | null;
-  setActiveUser: (user: User) => void;
+  setActiveUser: Dispatch<SetStateAction<User | null>>;
 }
 
 const ActiveChatContext = createContext<ActiveChatContextState | null>(null);

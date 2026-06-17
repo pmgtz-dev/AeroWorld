@@ -14,6 +14,12 @@ class SendMessageDto {
   forwardedFromMessageId!: number | null;
 }
 
+class DeleteChatDto {
+  chatId!: number;
+  userId!: number;
+  scope!: "self" | "other" | "all";
+}
+
 @Controller('chats')
 export class AewoController {
   constructor(private readonly aewoService: AewoService) {}
@@ -53,5 +59,10 @@ export class AewoController {
       dto.replyToMessageId,
       dto.forwardedFromMessageId
     );
+  }
+
+  @Post('delete')
+  async deleteChat(@Body() dto: DeleteChatDto) {
+    return this.aewoService.deleteChat(dto.chatId, dto.userId, dto.scope);
   }
 }

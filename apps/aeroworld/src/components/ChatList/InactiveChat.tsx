@@ -6,9 +6,11 @@ import styles from "./ChatList.module.scss";
 interface InactiveChatProps{
   children:React.ReactNode;
   onClick?:()=>void;
+  onContextMenu?:(event: React.MouseEvent<HTMLButtonElement>) => void;
+  contentClassName?: string;
 }
 
-export default function InactiveChat({ children, onClick }: InactiveChatProps) {
+export default function InactiveChat({ children, onClick, onContextMenu, contentClassName }: InactiveChatProps) {
   const ref = useRef<HTMLButtonElement | null>(null);
   const [scale, setScale] = useState(1);
 
@@ -53,9 +55,10 @@ export default function InactiveChat({ children, onClick }: InactiveChatProps) {
       className={styles["inactive-chat"]}
       style={{ ["--scale-width" as any]: scale }}
       onClick={onClick}
+      onContextMenu={onContextMenu}
     >
       <div className={styles["inactive-chat-glare"]}></div>
-      <div className={styles["inactive-chat-content-wrapper"]}>{children}</div>
+      <div className={`${styles["inactive-chat-content-wrapper"]} ${contentClassName ? ` ${contentClassName}` : ""}`}>{children}</div>
     </button>
   );
 }

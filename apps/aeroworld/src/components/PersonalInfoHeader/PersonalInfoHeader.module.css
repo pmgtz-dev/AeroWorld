@@ -1,8 +1,10 @@
 .NXKOuser-personal-info-section{
     z-index: 1;
+    position: relative;
     display: flex;
     align-items: center;
     flex-direction: row;
+    min-width: 0;
     padding: 10px;
     padding-right: 20px;
     width: 100%;
@@ -14,31 +16,69 @@
     background-size: 100%;
     background-repeat: repeat-y;
 }
-
+.settings{
+    position: absolute;
+    display:block;
+    width: 50px;
+    height: auto;
+    top: 0;
+    right: 28px;
+    cursor: pointer;
+}
 .NXKOuser-userinfo {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
-    padding: 0 10px 0 10px;
+    min-width: 0;
+    padding: 0 60px 0 10px;
     border-radius: 8px;
+    width: auto;
+}
+.username-edit-row{
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    min-width: 0;
+    height: 28px;
     width: fit-content;
-    max-width: 250px; 
+    max-width: 100%;
+}
+.username-edit-badge{
+    flex: 0 0 auto;
+    width: auto;
+    height: 100%;
+    object-fit: contain;
+    cursor: pointer;
+    filter: drop-shadow(3px 3px 1px rgba(0, 0, 0, 0.3))
 }
 
 .NXKOuser-username {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap; 
     font-size: 28px;
+    line-height: 28px;
+    overflow: hidden;
     color: var(--window-border-color); 
     font-family: var(--font-opt2);
 }
 
 .NXKOuser-username-id {
+    display: block;
+    min-width: 0;
+    width: 100%;
     text-overflow: ellipsis;
-    white-space: normal; 
+    white-space: nowrap; 
+    overflow: hidden;
     font-size: 14px;
     color: #808080;
     font-family: var(--font-opt2);
-    text-shadow: var(--aero-text-highlight);
+    text-shadow: var(--aero-text-highlight-duller);
 }
 .online-status{
+  white-space: nowrap;
   font-family: var(--font-opt2);
   font-size: 14px;
   font-weight: bold;
@@ -46,6 +86,7 @@
   margin-top: 10px;
 
   &.inactive{
+    text-shadow: var(--aero-text-highlight-duller);
     color:#9a9a9a;
     font-weight:normal;
   }

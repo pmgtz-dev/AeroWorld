@@ -1,9 +1,200 @@
-.aewo-info{
+.aewo-info-border{
   width: 100%;
   height: 12%;
   flex: 0 0 12%;
   min-height: 0;
-  background: #ffffff;
-  border: 1px solid #000000;
+  position: relative;
+  align-self: stretch;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.7) 0%, rgba(112, 186, 206, 0.8) 100%);
+  border: 1px groove #52718c;
+  border-radius: 4px;
   box-sizing: border-box;
+}
+.aewo-info{
+  position: absolute;
+  inset: 4px;
+  min-height: 0;
+  background: #FDFCFA;
+  border: 1px groove #52718c;
+  box-shadow: var(--inset-box-shadow);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.top{
+  width: 100%;
+  height: 80%;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: start;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 2px 4px;
+}
+.bottom{
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.logo{
+  aspect-ratio: 1474/607;
+  height: 100%;
+  width: auto;
+  flex: 0 0 auto;
+  align-self: center;
+  cursor: pointer;
+}
+.music-player{
+  flex: 1 1 auto;
+  width: auto;
+  height: 26px;
+  min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 2px 0;
+}
+.music-player-wrapper{
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-self: stretch;
+  max-width: 230px;
+}
+.music-player-toggle{
+  flex: 0 0 auto;
+  aspect-ratio: 1 / 1;
+  align-self: stretch;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.music-player-toggle-image{
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.music-player-title{
+  position: relative;
+  flex: 1 1 0;
+  align-self: center;
+  height: 70%;
+  overflow: hidden;
+  border: 1px groove #8d8d8d;
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.9) inset;
+  background: rgba(255, 255, 255);
+}
+
+.music-player-title-track{
+  position: absolute;
+  top: 50%;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  color: #004876;
+  font-style: italic;
+  font-size: 11px;
+}
+.loading-indicator{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  margin: auto;
+
+  img{
+    display: block;
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+  }
+}
+.music-player-volume-row{
+  width: 100%;
+  display: flex;
+  justify-content: end;
+  padding: 0 2px 2px 2px;
+  box-sizing: border-box;
+}
+.music-player-volume{
+  width: 72px;
+  flex: 0 0 72px;
+  margin: 0;
+  height: 14px;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+
+  &:focus,&:focus-visible{
+    outline: none;
+  }
+
+  &::-webkit-slider-runnable-track{
+    box-sizing: border-box;
+    height: 7px;
+    border: 1px solid #7c98ac;
+    border-radius: 999px;
+    background:
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(188, 223, 239, 0.95) 45%, rgba(123, 183, 208, 0.95) 100%);
+    box-shadow:
+      0 0 1px rgba(0, 0, 0, 0.75) inset,
+      0 1px 0 rgba(255, 255, 255, 0.65);
+  }
+
+  &::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -4px;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent url('/images/toggle.png') center / 14px 14px no-repeat;
+  }
+
+  &::-moz-range-track{
+    box-sizing: border-box;
+    height: 7px;
+    border: 1px groove #7c98ac;
+    border-radius: 999px;
+    background:
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(188, 223, 239, 0.95) 45%, rgba(123, 183, 208, 0.95) 100%);
+    box-shadow:
+      0 0 1px rgba(0, 0, 0, 0.75) inset,
+      0 1px 0 rgba(255, 255, 255, 0.65);
+  }
+
+  &::-moz-range-thumb{
+    width: 14px;
+    height: 14px;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent url('/images/toggle.png') center / 14px 14px no-repeat;
+  }
+}
+.rights-reserved{
+  margin-left: 6px;
+  font-family: var(--font-opt2);
+  font-weight: bold;
+  color: var(--window-border-color);
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
 }

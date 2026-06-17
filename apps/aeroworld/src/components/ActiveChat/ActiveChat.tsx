@@ -5,8 +5,9 @@ import { User } from '@/types/User';
 import { Message } from '@/types/Message';
 import { getSocket } from '@/lib/socket/socket';
 import { WS_EVENTS } from '@/lib/socket/events';
-import { formatLastSeen, formatTime } from '@/lib/utils';
+import { formatLastSeen, formatPreciseDateTime, formatTime } from '@/lib/utils';
 import { useProfileModal } from '@/app/_providers/ProfileModalContext';
+import { useActiveChat } from '@/app/_providers/ActiveChatContext';
 
 type Props = { user: User | null; };
 
@@ -26,19 +27,18 @@ const SELECTED_BAR_ANIMATION_MS = 500;
 
 type DeleteMessagesScope = 'self' | 'other' | 'all';
 
-type MessageActionKey =
-  | 'reply'
-  | 'edit'
-  | 'copy'
-  | 'forward'
-  | 'pin'
-  | 'select'
-  | 'delete';
+type DeleteMessageDialogConfirm = {
+  scope: DeleteMessagesScope;
+  label: string;
+} | null;
+
+type MessageActionKey = 'reply' | 'edit' | 'copy' | 'forward' | 'pin' | 'select' | 'delete';
 
 type DynamicMessageAction = {
   key: MessageActionKey;
   label: string;
 };
+type MessageEditPreview = { id: number; content: string } | null;
 
 const getMessageActions = (type: Message['type']): DynamicMessageAction[] => {
   const actions: DynamicMessageAction[] = [
@@ -112,17 +112,23 @@ const getDeleteDialogActions = (type: Message['type']) =>
 
 export default function ActiveChat({ user }: Props) {
   const { openProfile } = useProfileModal();
+  const { setActiveUser } = useActiveChat();
+  const [isMinimizing, setIsMinimizing] = useState(false);
   const [footerHeight, setFooterHeight] = useState(5);
   const [isSelectedBarVisible, setIsSelectedBarVisible] = useState(false);
   const [isSelectedBarClosing, setIsSelectedBarClosing] = useState(false);
   const [selectedBarCount, setSelectedBarCount] = useState(0);
   const [isCopyNoticeVisible, setIsCopyNoticeVisible] = useState(false);
   const [replyPreview, setReplyPreview] = useState<Message['replyToMessageId']>(null);
+  const [editMessagePreview, setEditMessagePreview] = useState<MessageEditPreview>(null);
 
   const chatBodyRef = useRef<HTMLDivElement | null>(null);
   const chatFooterRef = useRef<HTMLDivElement | null>(null);
   const messageActionMenuRef = useRef<HTMLDivElement | null>(null);
+  const sendMessageSoundRef = useRef<HTMLAudioElement | null>(null);
+  const sendMessageErrorRef = useRef<HTMLAudioElement | null>(null);
   const isResizing = useRef(false);
+  const messageInputCache = useRef<string | null>(null);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
     const el = chatBodyRef.current;
@@ -132,17 +138,58 @@ export default function ActiveChat({ user }: Props) {
       top: el.scrollHeight, behavior,
     });
   };
+  
+  const messageElementsRef = useRef<Map<number, HTMLElement>>(new Map());
+  const scrollToMessage = useCallback(
+    (messageId: number, at: 'top' | 'center' | 'bottom' = 'center') => {
+      const container = chatBodyRef.current;
+      const messageElement = messageElementsRef.current.get(messageId);
+      if (!container || !messageElement) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const messageRect = messageElement.getBoundingClientRect();
+      const messageTop =
+        container.scrollTop + (messageRect.top - containerRect.top);
+
+      let targetScrollTop = messageTop;
+
+      if (at === 'center') {
+        targetScrollTop =
+          messageTop - (container.clientHeight - messageRect.height) / 2;
+      }
+
+      if (at === 'bottom') {
+        targetScrollTop =
+          messageTop - (container.clientHeight - messageRect.height);
+      }
+
+      const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+      const nextScrollTop = Math.min(
+        Math.max(0, targetScrollTop),
+        maxScrollTop
+      );
+
+      container.scrollTo({
+        top: nextScrollTop,
+        behavior: 'smooth',
+      });
+    },
+    []
+  );
 
   const isAtBottomRef = useRef(true);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [messageActionMenu, setMessageActionMenu] = useState<MessageActionMenu>(null);
   const [deleteMessageDialog, setDeleteMessageDialog] = useState<DeleteMessageDialog>(null);
+  const [deleteMessageDialogConfirm, setDeleteMessageDialogConfirm] =
+    useState<DeleteMessageDialogConfirm>(null);
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<number>>(
     () => new Set()
   );
   const selectedMessageIdsRef = useRef<Set<number>>(new Set());
   const isSelectingMessagesRef = useRef(false);
   const messageClickTimerRef = useRef<number | null>(null);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   const onScroll = () => {
     const el = chatBodyRef.current;
@@ -178,6 +225,19 @@ export default function ActiveChat({ user }: Props) {
     document.addEventListener('mouseup', stopResizing);
   };
 
+  const handleMinimizeChat = () => {
+    document.body.style.cursor = 'default';
+    document.body.style.userSelect = '';
+    isResizing.current = false;
+    document.removeEventListener('mousemove', resizeChat);
+    document.removeEventListener('mouseup', stopResizing);
+    setIsMinimizing(true);
+    window.setTimeout(() => {
+      setIsMinimizing(false);
+      setActiveUser(null);
+    }, 280);
+  };
+
   const resizeChat = (event: MouseEvent) => {
     if (!isResizing.current || !chatBodyRef.current || !chatFooterRef.current)
       return;
@@ -195,6 +255,12 @@ export default function ActiveChat({ user }: Props) {
     document.body.style.cursor = 'default';
     document.removeEventListener('mousemove', resizeChat);
     document.removeEventListener('mouseup', stopResizing);
+  };
+  const playNavigationSound = () => {
+    const navigationStart = sendMessageSoundRef.current;
+    if (!navigationStart) return;
+    navigationStart.currentTime = 0;
+    void navigationStart.play().catch(() => {});
   };
 
   const openMessageActionMenu = (msg: Message, x: number, y: number) => {
@@ -280,6 +346,10 @@ export default function ActiveChat({ user }: Props) {
   );
 
   const openReplyPreview = useCallback((message: Message) => {
+    setEditMessagePreview(null);
+    if (messageInputRef.current && messageInputCache.current !== null) messageInputRef.current.value = messageInputCache.current;
+    messageInputCache.current = null;
+    
     setReplyPreview({
       id: message.id,
       content: message.content,
@@ -290,6 +360,21 @@ export default function ActiveChat({ user }: Props) {
           : null,
     });
   }, [user?.id, user?.nickname, user?.username]);
+  
+  const openEditPreview = useCallback((message: Message) => {
+    setReplyPreview(null);
+    setEditMessagePreview({
+      id: message.id,
+      content: message.content
+    });
+    if (messageInputRef.current) {
+      if (messageInputCache.current === null){
+        messageInputCache.current = messageInputRef.current.value;
+      }
+      messageInputRef.current.value = message.content;
+      messageInputRef.current.focus();
+    }
+  }, []);
 
   const handleMessageMouseDown = (
     event: React.MouseEvent<HTMLDivElement>,
@@ -385,17 +470,16 @@ export default function ActiveChat({ user }: Props) {
   useEffect(() => {
     if (!messageActionMenu) return;
 
-    const closeMenu = () => setMessageActionMenu(null);
-    const closeMenuOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeMenu();
+    const closeMenu = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target?.closest('.menu-item')) return;
+      setMessageActionMenu(null);
     };
 
-    document.addEventListener('click', closeMenu);
-    document.addEventListener('keydown', closeMenuOnEscape);
+    document.addEventListener('mousedown', closeMenu);
 
     return () => {
-      document.removeEventListener('click', closeMenu);
-      document.removeEventListener('keydown', closeMenuOnEscape);
+      document.removeEventListener('mousedown', closeMenu);
     };
   }, [messageActionMenu]);
 
@@ -523,6 +607,38 @@ export default function ActiveChat({ user }: Props) {
     );
   }, []);
 
+  const applyEditedMessage = useCallback((message: any) => {
+    setMessages((current) =>
+      current.map((item) =>
+        item.id === message.id
+          ? {
+              ...item,
+              content: message?.content ?? '',
+              isEdited: message?.isEdited ?? true,
+              editedAt: message?.editedAt ?? item.editedAt,
+              createdAtFull: message?.createdAt ?? item.createdAtFull,
+            }
+          : item
+      )
+    );
+    setReplyPreview((current) =>
+      current && current.id === message.id
+        ? {
+            ...current,
+            content: message?.content ?? '',
+          }
+        : current
+    );
+    setEditMessagePreview((current) =>
+      current && current.id === message.id
+        ? {
+            ...current,
+            content: message?.content ?? '',
+          }
+        : current
+    );
+  }, []);
+
   const deleteMessages = useCallback(
     async (messageIds: number[], scope: DeleteMessagesScope) => {
       const s = socketRef.current ?? getSocket();
@@ -577,6 +693,7 @@ export default function ActiveChat({ user }: Props) {
       messageIds: selectedIds,
       type: dialogType
     });
+    setDeleteMessageDialogConfirm(null);
   }, [messages]);
 
   const handleDeleteDialogAction = useCallback(
@@ -585,6 +702,7 @@ export default function ActiveChat({ user }: Props) {
 
       await deleteMessages(deleteMessageDialog.messageIds, scope);
       setDeleteMessageDialog(null);
+      setDeleteMessageDialogConfirm(null);
     },
     [deleteMessageDialog, deleteMessages]
   );
@@ -594,6 +712,7 @@ export default function ActiveChat({ user }: Props) {
       return false;
 
     isLoadingMessagesRef.current = true;
+    setIsLoadingMessages(true);
     const loadGeneration = loadGenerationRef.current;
     const otherUserId = user.id;
 
@@ -628,6 +747,7 @@ export default function ActiveChat({ user }: Props) {
         isPinned: m.isPinned ?? false,
         viewedAt: m.viewedAt ?? null,
         editedAt: m.editedAt ?? null,
+        createdAtFull: m.createdAt ?? new Date().toISOString(),
         createdAt: m.createdAt
           ? formatTime(m.createdAt)
           : formatTime(new Date().toISOString()),
@@ -684,25 +804,12 @@ export default function ActiveChat({ user }: Props) {
     } finally {
       if (loadGeneration === loadGenerationRef.current) {
         isLoadingMessagesRef.current = false;
+        setIsLoadingMessages(false);
       }
     }
   };
 
   useEffect(() => {
-    if (!user) {
-      setMessages([]);
-      setChatId(null);
-      prevChatIdRef.current = null;
-      loadGenerationRef.current += 1;
-      isLoadingMessagesRef.current = false;
-      lastMessageIdRef.current = null;
-    hasMoreMessagesRef.current = true;
-    lastSeenInitializedRef.current = false;
-    clearSelectedMessages();
-    setReplyPreview(null);
-    return;
-  }
-
     setMessages([]);
     setChatId(null);
     loadGenerationRef.current += 1;
@@ -711,7 +818,15 @@ export default function ActiveChat({ user }: Props) {
     hasMoreMessagesRef.current = true;
     clearSelectedMessages();
     setReplyPreview(null);
+    setEditMessagePreview(null);
+    setIsLoadingMessages(false);
+    messageInputCache.current = null;
+    lastSeenInitializedRef.current = false;
 
+    if (!user) {
+      prevChatIdRef.current = null;
+      return;
+    }
     setLastSeen(user.lastSeen ?? null);
     lastSeenInitializedRef.current = true;
     loadMessages();
@@ -795,6 +910,7 @@ export default function ActiveChat({ user }: Props) {
           isPinned: m.isPinned ?? false,
           viewedAt: m.viewedAt ?? null,
           editedAt: m.editedAt ?? null,
+          createdAtFull: m.createdAt ?? new Date().toISOString(),
           createdAt: m.createdAt
             ? formatTime(m.createdAt)
             : formatTime(new Date().toISOString()),
@@ -826,6 +942,15 @@ export default function ActiveChat({ user }: Props) {
           scrollToBottom('smooth');
         });
       }
+    };
+
+    const onEditedMessage = (payload: any) => {
+      const chatId = chatIdRef.current;
+      if (!chatId) return;
+      if (+payload.chatId !== chatId) return;
+      if (!payload.message?.id) return;
+
+      applyEditedMessage(payload.message);
     };
 
     const onTypingStart = (payload: any) => {
@@ -883,6 +1008,7 @@ export default function ActiveChat({ user }: Props) {
 
     s.on(WS_EVENTS.MESSAGE_VIEWED, onMessageViewed);
     s.on(WS_EVENTS.CHAT_MESSAGE_NEW, onNewMessage);
+    s.on(WS_EVENTS.CHAT_MESSAGE_EDITED, onEditedMessage);
     s.on(WS_EVENTS.CHAT_MESSAGE_DELETED, onMessagesDeleted);
     s.on(WS_EVENTS.CHAT_TYPING_START, onTypingStart);
     s.on(WS_EVENTS.CHAT_TYPING_STOP, onTypingStop);
@@ -896,13 +1022,14 @@ export default function ActiveChat({ user }: Props) {
       }
       s.off(WS_EVENTS.MESSAGE_VIEWED, onMessageViewed);
       s.off(WS_EVENTS.CHAT_MESSAGE_NEW, onNewMessage);
+      s.off(WS_EVENTS.CHAT_MESSAGE_EDITED, onEditedMessage);
       s.off(WS_EVENTS.CHAT_MESSAGE_DELETED, onMessagesDeleted);
       s.off(WS_EVENTS.CHAT_TYPING_START, onTypingStart);
       s.off(WS_EVENTS.CHAT_TYPING_STOP, onTypingStop);
       s.off(WS_EVENTS.PRESENCE_ONLINE, onPresenceOnline);
       s.off(WS_EVENTS.PRESENCE_OFFLINE, onPresenceOffline);
     };
-  }, [removeMessagesFromState, user]);
+  }, [applyEditedMessage, removeMessagesFromState, user]);
 
   const emitTyping = (text: string) => {
     const s = socketRef.current ?? getSocket();
@@ -967,36 +1094,100 @@ export default function ActiveChat({ user }: Props) {
 
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const isSendingMessageRef = useRef(false);
-  const sendMessage = async () => {
+  const triggerMessageInputShake = (
+    element: HTMLTextAreaElement | null
+  ) => {
+    if (!element) return;
+
+    element.classList.remove(styles['discussion-shake']);
+    void element.offsetWidth;
+    element.classList.add(styles['discussion-shake']);
+
+    const handleAnimationEnd = () => {
+      element.classList.remove(styles['discussion-shake']);
+      element.removeEventListener('animationend', handleAnimationEnd);
+    };
+
+    element.addEventListener('animationend', handleAnimationEnd);
+  };
+  const sendMessage = async (
+    options?: { suppressClickSoundOnEmptyEnter?: boolean }
+  ) => {
     if (!user || isSendingMessageRef.current) return;
 
     const text = messageInputRef.current?.value.trim();
-    if (!text) return;
+    const sendMessageSound = sendMessageSoundRef.current;
+    const shouldSuppressClickSound = !text && options?.suppressClickSoundOnEmptyEnter;
+
+    if (sendMessageSound && !shouldSuppressClickSound) {
+      sendMessageSound.currentTime = 0;
+      void sendMessageSound.play().catch(() => {});
+    }
+    if (!text) {
+      const sendMessageError = sendMessageErrorRef.current;
+
+      if (sendMessageError) {
+        sendMessageError.currentTime = 0;
+        setTimeout(() => {
+          void sendMessageError.play().catch(() => {});
+        }, 70);
+      }
+      triggerMessageInputShake(messageInputRef.current);
+      return;
+    }
 
     isSendingMessageRef.current = true;
     setIsSendingMessage(true);
 
     try {
-      const res = await fetch('/api/chats/send-message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          otherUserId: user.id,
-          content: text,
-          replyToMessageId: replyPreview?.id ?? null,
-          forwardedFromMessageId: null,
-        }),
-      });
+      if (editMessagePreview) {
+        const s = socketRef.current ?? getSocket();
+        socketRef.current = s;
 
-      const data = await res.json();
-      if (!res.ok) {
-        console.error(data);
-        return;
+        if (!s.connected) {
+          s.connect();
+        }
+
+        const activeChatId = chatIdRef.current;
+        if (!activeChatId) return;
+
+        const response = await s.emitWithAck(WS_EVENTS.CHAT_MESSAGE_EDIT, {
+          chatId: activeChatId,
+          messageId: editMessagePreview.id,
+          content: text,
+        });
+
+        if (!response?.ok) {
+          console.error('Failed to edit message', response);
+          return;
+        }
+        if (response.message) {
+          applyEditedMessage(response.message);
+        }
+      } else {
+        const res = await fetch('/api/chats/send-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            otherUserId: user.id,
+            content: text,
+            replyToMessageId: replyPreview?.id ?? null,
+            forwardedFromMessageId: null,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          console.error(data);
+          return;
+        }
       }
 
       if (messageInputRef.current) messageInputRef.current.value = '';
       setReplyPreview(null);
+      messageInputCache.current = null;
+      setEditMessagePreview(null);
     } catch (e) {
       console.error('Failed to send message', e);
     } finally {
@@ -1011,6 +1202,19 @@ export default function ActiveChat({ user }: Props) {
   const seenOnceRef = useRef<Set<number>>(new Set());
   const ioRef = useRef<IntersectionObserver | null>(null);
   const elementToMsgIdRef = useRef(new Map<Element, number>());
+  const markMessagesViewed = useCallback(
+    (messageIds: number[], viewedAt: string | null = new Date().toISOString()) => {
+      const ids = new Set(messageIds.map((id) => Number(id)).filter(Number.isFinite));
+      if (!ids.size) return;
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          ids.has(m.id) ? { ...m, isViewed: true, viewedAt: viewedAt ?? m.viewedAt } : m
+        )
+      );
+    },
+    []
+  );
 
   const flushViews = useCallback(() => {
     const s = socketRef.current;
@@ -1055,6 +1259,7 @@ export default function ActiveChat({ user }: Props) {
             const next = Math.max(0, prev - 1);
             return next;
           });
+          markMessagesViewed([id]);
           queueView(id);
 
           ioRef.current?.unobserve(e.target);
@@ -1069,7 +1274,7 @@ export default function ActiveChat({ user }: Props) {
       ioRef.current = null;
       elementToMsgIdRef.current.clear();
     };
-  }, [queueView]);
+  }, [markMessagesViewed, queueView]);
 
   const observeIncomingMessage = useCallback(
     (el: HTMLElement | null, msg: any) => {
@@ -1087,12 +1292,31 @@ export default function ActiveChat({ user }: Props) {
     },
     []
   );
+  const setMessageElementRef = useCallback(
+    (el: HTMLElement | null, msg: Message) => {
+      if (el) {
+        messageElementsRef.current.set(msg.id, el);
+      } else {
+        messageElementsRef.current.delete(msg.id);
+      }
+
+      observeIncomingMessage(el, msg);
+    },
+    [observeIncomingMessage]
+  );
+  useEffect(() => {
+    for (const msg of messages) {
+      const el = messageElementsRef.current.get(msg.id);
+      if (!el) continue;
+      observeIncomingMessage(el, msg);
+    }
+  }, [messages, observeIncomingMessage]);
 
   const handleKeyPress = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (isSendingMessageRef.current) return;
-      sendMessage();
+      sendMessage({ suppressClickSoundOnEmptyEnter: true });
       emitTyping('');
     }
   };
@@ -1100,27 +1324,39 @@ export default function ActiveChat({ user }: Props) {
   if (!user) {
     return (
       <div className={styles['active-chat-empty']}>
-        <p style={{ color: '#ccc', textAlign: 'center', marginTop: '20%' }}>
-          Выберите пользователя, чтобы начать чат
+        <div
+          className={styles['message-glare']}
+          style={{ left: '50%', marginTop: '-8px', transform: 'translateX(-50%)', width: '90%' }}
+        />
+        <p style={{ zIndex: '30' }}>
+          Чтобы начать общаться, выберите чат!
         </p>
       </div>
     );
   }
   return (
-    <>
+    <div className={`${styles['active-chat-shell']}${isMinimizing ? ' window-minimizing' : ''}`}>
       {/* HEADER */}
       <div className={styles['active-chat-header']}>
         <div className={styles['header-info-part']}>
           <Image
-            src="/images/defaultpfp_1.jpg"
+            src={user.avatarUrl || "/images/defaultpfp_grey.jpg"}
             alt="User"
             width={40}
             height={40}
             className={styles['active-chat-userpic']}
-            onClick={() => user && openProfile(user)}
+            onClick={() => {
+              if (!user) return;
+              playNavigationSound();
+              openProfile(user);
+            }}
           />
           <div style={{ display: 'flex', flexDirection: 'column'}}>
-            <span className="aero-title in-active-chat" onClick={() => user && openProfile(user)}>
+            <span className="aero-title in-active-chat" onClick={() => {
+              if (!user) return;
+              playNavigationSound();
+              openProfile(user);
+            }}>
               <span className="username">{user.nickname}</span>
             </span>
             <span
@@ -1149,11 +1385,12 @@ export default function ActiveChat({ user }: Props) {
         <div className={styles['header-control-buttons']}>
           <button
             className={`${styles['aero-buttons-blue']} ${styles['aero-button-minimize']}`}
+            onClick={handleMinimizeChat}
           />
           <button
             className={`${styles['aero-buttons-blue']} ${styles['aero-button-maximize']}`}
           />
-          <button className={styles['aero-button-close']} />
+          <button className={styles['aero-button-close']} onClick={() => setActiveUser(null)} />
         </div>
       </div>
 
@@ -1165,6 +1402,9 @@ export default function ActiveChat({ user }: Props) {
         onMouseDown={handleChatBodyMouseDown}
       >
         <div className={styles['active-chat-messages']}>
+          {messages.length === 0 && !isLoadingMessages && (
+            <div className={styles['no-messages']}>Здесь пока нет сообщений...</div>
+          )}
           {messages.map((msg, index) => (
             <div key={index} className={`${styles['each-message-container']} ${ msg.type === 'sent' ? styles['sent-c'] : styles['received-c']}`}>
             {selectedMessageIds.has(msg.id) && (
@@ -1190,7 +1430,7 @@ export default function ActiveChat({ user }: Props) {
                 } ${
                   selectedMessageIds.has(msg.id) ? styles['selected'] : ''
                 }`}
-                ref={(el) => observeIncomingMessage(el, msg)}
+                ref={(el) => setMessageElementRef(el, msg)}
                 aria-selected={selectedMessageIds.has(msg.id)}
                 onMouseDown={(event) => handleMessageMouseDown(event, msg)}
                 onMouseEnter={(event) => handleMessageMouseEnter(event, msg)}
@@ -1223,7 +1463,7 @@ export default function ActiveChat({ user }: Props) {
                     onMouseDown={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
-                    }}
+                    }}  
                     onClick={(event) => handleMessageActionMenuClick(event, msg)}
                     onKeyDown={(event) => {
                       if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -1240,12 +1480,20 @@ export default function ActiveChat({ user }: Props) {
                   <div className={`${styles['message-info-main']} ${styles[msg.type]}`}>
                     <span className={(msg.isViewed || msg.type === 'received') ? '' : styles['message-unseen']}/>
                     <div className={styles['message-info-side-part']}>
-                      <span className={`${styles['message-time-sent']} ${styles[msg.type]}`}>
+                      <span
+                        className={`${styles['message-time-sent']} ${styles[msg.type]}`}
+                        title={formatPreciseDateTime(msg.createdAtFull)}
+                      >
                         {msg.createdAt}
                       </span>
-                      <span className={`${styles['message-time-sent']}`}>
-                        (Изм.)
-                      </span>
+                      {msg.isEdited && (
+                        <span
+                          className={styles['message-time-sent']}
+                          title={`Изменено: ${formatPreciseDateTime(msg.editedAt).toLowerCase()}`}
+                        >
+                          (Изм.)
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1253,7 +1501,20 @@ export default function ActiveChat({ user }: Props) {
             </div>
           ))}
           {!isAtBottom && unreadCount > 0 && (
-            <span className={styles['unseen-messages']}>
+            <span
+              className={styles['unseen-messages']}
+              onClick={() => {
+                if (unreadCount < 10) {
+                  scrollToBottom('smooth');
+                  return;
+                }
+                const firstUnreadMessage = messages.find(
+                  (message) => message.type === 'received' && !message.isViewed
+                );
+                if (!firstUnreadMessage) return;
+                scrollToMessage(firstUnreadMessage.id, 'bottom');
+              }}
+            >
               <span>{unreadCount > 99 ? '99+' : unreadCount}</span>
             </span>
           )}
@@ -1267,22 +1528,31 @@ export default function ActiveChat({ user }: Props) {
             }`}
           >
             <span className={styles['selected-messages-count']}>
-              {selectedBarCount}
+              {selectedBarCount > 99 ? '99+' : selectedBarCount}
             </span>
             <div className={styles['selected-messages-actions']}>
               <span
                 className={`${styles['selected-messages-bar-btn']} ${styles['delete']}`}
-                onClick={() => void handleSelectedMessagesDelete()}
+                onClick={() => {
+                  playNavigationSound();
+                  void handleSelectedMessagesDelete();
+                }}
                 title='Удалить'
               ></span>
-              <span className={`${styles['selected-messages-bar-btn']} ${styles['forward']}`} title='Переслать'></span>
+              <span className={`${styles['selected-messages-bar-btn']} ${styles['forward']}`} title='Переслать' onClick={playNavigationSound}></span>
               <span
                 className={`${styles['selected-messages-bar-btn']} ${styles['copy']}`}
-                onClick={() => copyMessagesToClipboard(selectedMessageIds)}
+                onClick={() => {
+                  copyMessagesToClipboard(selectedMessageIds);
+                  playNavigationSound();
+                }}
                 title='Копировать'
               ></span>
             </div>
-            <span className={`${styles['selected-messages-bar-btn']} ${styles['cancel']}`} onClick={clearSelectedMessages} title='Закрыть'></span>
+            <span className={`${styles['selected-messages-bar-btn']} ${styles['cancel']}`} 
+                  onClick={() => {clearSelectedMessages(); playNavigationSound(); }} 
+                  title='Закрыть'
+            ></span>
             <span className={styles['aero-text']}>Выбрано</span>
           </div>
         )}
@@ -1310,14 +1580,30 @@ export default function ActiveChat({ user }: Props) {
             <button type="button" className={styles['reply-preview-close']} onClick={() => setReplyPreview(null)}/>
           </div>
         )}
+        {editMessagePreview && (
+          <div className={styles['reply-preview']}>
+            <div className={styles['reply-preview-accent']}>
+              <span className={styles['edit-message-preview-icon']}></span>
+            </div>
+            <div className={styles['reply-preview-content']}>
+              <span className={styles['reply-preview-label']}>Редактировать</span>
+              <span className={styles['reply-preview-text']}>
+                {editMessagePreview.content}
+              </span>
+            </div>
+            <button type="button" className={styles['reply-preview-close']} onClick={() => {
+              setEditMessagePreview(null);
+              if (messageInputRef.current && messageInputCache.current !== null) messageInputRef.current.value = messageInputCache.current;
+              messageInputCache.current = null;
+            }}/>
+          </div>
+        )}        
       </div>
 
       {messageActionMenu && (
         <div
           ref={messageActionMenuRef}
-          className={`${styles['message-action-menu']} ${
-            styles[messageActionMenu.type]
-          }`}
+          className={`menu ${styles['message-action-menu']} ${styles[messageActionMenu.type]}`}
           style={{
             left: messageActionMenu.x,
             top: messageActionMenu.y,
@@ -1329,13 +1615,14 @@ export default function ActiveChat({ user }: Props) {
               <button
                 key={key}
                 type="button"
-                className={styles['message-action-menu-item']}
+                className="menu-item"
                 onClick={async () => {
                   const targetMessage = messages.find(
                     (message) => message.id === messageActionMenu.messageId
                   );
 
                   if (key === 'reply' && targetMessage) openReplyPreview(targetMessage);
+                  if (key === 'edit' && targetMessage) openEditPreview(targetMessage);
                   if (key === 'copy') await copyMessagesToClipboard(new Set([messageActionMenu.messageId]));
                   if (key === 'select') {
                     setSelectedMessageIds((current) => {
@@ -1348,12 +1635,13 @@ export default function ActiveChat({ user }: Props) {
                       return next;
                     });
                   }
-                  if (key === 'delete') {
-                    setDeleteMessageDialog({
-                      messageIds: [messageActionMenu.messageId],
-                      type: messageActionMenu.type
-                    });
-                  }
+                    if (key === 'delete') {
+                      setDeleteMessageDialog({
+                        messageIds: [messageActionMenu.messageId],
+                        type: messageActionMenu.type
+                      });
+                      setDeleteMessageDialogConfirm(null);
+                    }
                   setMessageActionMenu(null);
                 }}
               >
@@ -1370,44 +1658,75 @@ export default function ActiveChat({ user }: Props) {
 
       {deleteMessageDialog && (
         <div
-          className={styles['delete-message-dialog-backdrop']}
-          onClick={() => setDeleteMessageDialog(null)}
+          className={`delete-dialog-backdrop ${styles["delete-dialog-backdrop-local"]}`}
+          onClick={() => {
+            setDeleteMessageDialog(null);
+            setDeleteMessageDialogConfirm(null);
+          }}
         >
-          <div
-            className={styles['delete-message-dialog']}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className={styles['delete-message-dialog-actions']}>
-              {getDeleteDialogActions(deleteMessageDialog.type).map(
-                ({ label, scope }) => (
-                <button
-                  key={label}
-                  type="button"
-                  className={styles['delete-message-option']}
-                  onClick={() => void handleDeleteDialogAction(scope)}
-                >
-                  <span className={styles['delete-message-option-glare']}></span>
-                  <span className={styles['delete-message-option-content']}>
-                    <span className={styles['delete-message-option-label']}>
-                      {label}
-                    </span>
-                    </span>
-                </button>
-                )
-              )}
-            </div>
-            <button
-              type="button"
-              className={`${styles['delete-message-option']} ${styles['delete-message-option-cancel']}`}
-              onClick={() => setDeleteMessageDialog(null)}
+            <div
+                className="delete-dialog-frame"
+              onClick={(event) => event.stopPropagation()}
             >
-              <span className={styles['delete-message-option-glare']}></span>
-              <span className={styles['delete-message-option-content']}>
-                <span className={styles['delete-message-option-label']}>
-                  Отмена
-                </span>
-              </span>
-            </button>
+                <div className="delete-dialog">
+                  <div className="delete-dialog-actions">
+                {deleteMessageDialogConfirm ? (
+                  <>
+                    <div className="delete-dialog-confirm-text">
+                      <span className="delete-dialog-confirm-title">Вы уверены?</span>
+                      <span className="delete-dialog-confirm-subtitle">
+                        {deleteMessageDialogConfirm.label}
+                      </span>
+                    </div>
+                    <button
+                      type="button" className='delete-option'
+                      onClick={() => {
+                        playNavigationSound();
+                        setDeleteMessageDialogConfirm(null);
+                        setDeleteMessageDialog(null);
+                      }}
+                    >
+                      <span className='delete-option-glare'></span>
+                      Отмена
+                    </button>
+                    <button
+                      type="button"
+                      className='delete-option cancel'
+                      onClick={() => { playNavigationSound(); void handleDeleteDialogAction(deleteMessageDialogConfirm.scope); }}
+                    >
+                      <span className='delete-option-glare'></span>
+                      Удалить
+                    </button>
+                  </>
+                ) : (<>
+                    {getDeleteDialogActions(deleteMessageDialog.type).map(
+                      ({ label, scope }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        className='delete-option'
+                        onClick={() => { playNavigationSound(); setDeleteMessageDialogConfirm({ scope, label }); }}
+                      >
+                        <span className='delete-option-glare'></span>
+                        {label}
+                      </button> 
+                    ))}
+                    <button
+                      type="button" className='delete-option cancel'
+                      onClick={() => {
+                        playNavigationSound();
+                        setDeleteMessageDialogConfirm(null);
+                        setDeleteMessageDialog(null);
+                      }}
+                    >
+                      <span className='delete-option-glare'></span>
+                      Отмена
+                    </button>
+                  </>
+                )}
+
+                </div>
+              </div>
           </div>
         </div>
       )}
@@ -1428,17 +1747,18 @@ export default function ActiveChat({ user }: Props) {
         style={{ height: `${footerHeight}%` }}
       >
         <div className={styles['footer-glare']}></div>
+        <audio ref={sendMessageSoundRef} src="/audio/navigation_start.wav" preload="auto" />
+        <audio ref={sendMessageErrorRef} src="/audio/chord.wav" preload="auto" />
 
         <textarea
-          className="retro-input"
+          className={`retro-input ${styles['chat-message-input']}`}
           placeholder="Введите сообщение..."
-          rows={2}
+          rows={1}
           ref={messageInputRef}
           onKeyDown={handleKeyPress}
           onChange={(e) => {
             emitTyping(e.target.value);
           }}
-          style={{ width: `40%` }}
         ></textarea>
 
         <button
@@ -1457,6 +1777,6 @@ export default function ActiveChat({ user }: Props) {
           }}
         ></button>
       </div>
-    </>
+    </div>
   );
 }

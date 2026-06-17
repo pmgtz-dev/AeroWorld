@@ -633,7 +633,7 @@ const Welcome: FC = () => {
                 </div>
                 <div className={styles["white-text-content"]}>
                   <p style={{ fontStyle: "italic", color: '#016caf', fontWeight: 'bold' }}>веб-сервис запущен 10-го июня 2026</p>
-                  <p>Вы можете связаться со мной через <a href="mailto:example@email.com">почту</a>. Смело пишите, если у вас есть какие-либо предложения или вопросы!!</p>
+                  <p>Вы можете связаться со мной через <a href="mailto:aeroworld.direct@gmail.com">почту</a>. Смело пишите, если у вас есть какие-либо предложения или вопросы!!</p>
                 </div>
                 <div className={styles["emojis"]} ref={whiteTextStripRef}>
                   {Array.from({ length: whiteTextSmileCount }).map((_, index) => (
@@ -662,7 +662,7 @@ const Welcome: FC = () => {
                   <div className={styles["nav-links"]}>
                     <a href="#">Главная</a>
                     <a href="/auth/signup">Зарегистрироваться</a>
-                    <a href="https://t.me/AeroWorldlove">Телеграм канал</a>
+                    <a href="https://t.me/AeroWorld_aewo">Телеграм канал</a>
                   </div>
 
                   <div className={styles["nav-note"]}>
@@ -764,11 +764,10 @@ const Welcome: FC = () => {
                 <img src="/images/hello_bubble.png" alt="" className={styles["hello"]} />
                 <div className={styles["footer-wrap"]}>
                   <div className={styles["footer-content"]}>
-                    <a href="mailto:example@email.com">Поддержка</a>
+                    <a href="mailto:aeroworld.direct@gmail.com">Поддержка</a>
                     <a href="/faq">FAQ</a>
-                    <a href="https://t.me/AeroWorldlove">Телеграм</a>
+                    <a href="https://t.me/AeroWorld_aewo">Телеграм</a>
                     <a href="/links">Ссылки</a>
-                    
                     <a href="/archive">Архив</a>
                     <a href="/music">Музыка</a>
                     <a href="/gallery">Галерея</a>

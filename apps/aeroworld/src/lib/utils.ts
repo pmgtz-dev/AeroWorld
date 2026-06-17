@@ -59,3 +59,27 @@ export function formatLastSeen(input: LastSeenInput): string {
 
   return `${d.getDate()} ${months[d.getMonth()]} в ${hhmm}`;
 }
+
+export function formatPreciseDateTime(input?: string | null): string {
+  if (!input) return "";
+
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) return "";
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+  const targetDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  const time = `${hh}:${mm}:${ss}`;
+
+  if (today.getTime() === targetDay.getTime()) {
+    return `Сегодня, ${time}`;
+  }
+  if (yesterday.getTime() === targetDay.getTime()) {
+    return `Вчера, ${time}`;
+  }
+  return `${d.getDate()} ${months[d.getMonth()]} ${time}`;
+}

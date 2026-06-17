@@ -45,3 +45,6 @@ out
 # Environment variables
 .env
 .env.local
+
+# Private uploads
+apps/aeroworld/public/uploads/**

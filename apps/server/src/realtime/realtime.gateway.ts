@@ -134,6 +134,47 @@ export class RealtimeGateway
     return chat.user0.id === userId ? chat.user1.id : chat.user0.id;
   }
 
+  private mapMessagePayload(
+    message:
+      | (Message & {
+          reply_to_message?: (Message & { sender?: User | null }) | null;
+          forwarded_from_user?: User | null;
+        })
+      | null
+  ) {
+    if (!message) return null;
+
+    return {
+      id: message.id,
+      content: message.content ?? "",
+      senderId: message.sender_id,
+      isViewed: !!message.is_viewed,
+      isEdited: !!message.is_edited,
+      isPinned: !!message.is_pinned,
+      viewedAt: message.viewed_at ?? null,
+      editedAt: message.edited_at ?? null,
+      createdAt: message.created_at,
+      replyToMessageId: message.reply_to_message
+        ? {
+            id: message.reply_to_message.id,
+            content: message.reply_to_message.content ?? "",
+            senderId: message.reply_to_message.sender_id ?? 0,
+            senderUsername: message.reply_to_message.sender?.nickname ?? null,
+          }
+        : null,
+      forwardedFromMessage: message.forwarded_from_message
+        ? {
+            id: message.forwarded_from_message.id,
+            userId: message.forwarded_from_user?.id ?? null,
+            username: message.forwarded_from_user?.nickname ?? null,
+            avatarUrl: message.forwarded_from_user?.avatar_url ?? null,
+            content: message.original_content ?? "",
+            createdAt: message.original_created_at ?? null,
+          }
+        : null,
+    };
+  }
+
  @UseGuards(WsAuthGuard)
   @SubscribeMessage(WS_EVENTS.CHAT_JOIN)
   async chatJoin(@ConnectedSocket() client: Socket, @MessageBody() body: { chatId: number }) {
@@ -216,6 +257,73 @@ export class RealtimeGateway
   }
 
   @UseGuards(WsAuthGuard)
+  @SubscribeMessage(WS_EVENTS.CHAT_MESSAGE_EDIT)
+  async editMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    body: {
+      chatId: number;
+      messageId: number;
+      content: string;
+    },
+  ) {
+    const userId = Number(client.data.userId);
+    const chatId = Number(body?.chatId);
+    const messageId = Number(body?.messageId);
+    const content = String(body?.content ?? "").trim();
+
+    if (!Number.isFinite(chatId) || !Number.isFinite(messageId) || !content) {
+      return { ok: false, error: "INVALID_PAYLOAD" };
+    }
+
+    const chat = await this.getAuthorizedChat(chatId, userId);
+    if (!chat) {
+      return { ok: false, error: "FORBIDDEN" };
+    }
+
+    const message = await this.messagesRepo.findOne({
+      where: {
+        id: messageId,
+        chat: { id: chatId },
+      },
+      relations: {
+        reply_to_message: {
+          sender: true,
+        },
+        forwarded_from_message: true,
+        forwarded_from_user: true,
+      },
+    });
+
+    if (!message) {
+      return { ok: false, error: "MESSAGE_NOT_FOUND" };
+    }
+
+    if (Number(message.sender_id) !== userId) {
+      return { ok: false, error: "FORBIDDEN" };
+    }
+
+    message.content = content;
+    message.is_edited = true;
+    message.edited_at = new Date();
+    await this.messagesRepo.save(message);
+
+    const payload = this.mapMessagePayload(message);
+
+    this.emitToChat(chatId, WS_EVENTS.CHAT_MESSAGE_EDITED, {
+      chatId,
+      message: payload,
+    });
+    this.emitToUser(chat.user0.id, WS_EVENTS.CHAT_LIST_REFRESH, { chatId });
+    this.emitToUser(chat.user1.id, WS_EVENTS.CHAT_LIST_REFRESH, { chatId });
+
+    return {
+      ok: true,
+      message: payload,
+    };
+  }
+
+  @UseGuards(WsAuthGuard)
   @SubscribeMessage(WS_EVENTS.CHAT_MESSAGE_DELETE)
   async deleteMessages(
     @ConnectedSocket() client: Socket,
@@ -267,6 +375,8 @@ export class RealtimeGateway
         messageIds: idsToDelete,
         scope,
       });
+      this.emitToUser(chat.user0.id, WS_EVENTS.CHAT_LIST_REFRESH, { chatId });
+      this.emitToUser(chat.user1.id, WS_EVENTS.CHAT_LIST_REFRESH, { chatId });
 
       return { ok: true, deletedMessageIds: idsToDelete, scope };
     }
@@ -300,6 +410,7 @@ export class RealtimeGateway
       messageIds: [...idsToHide, ...idsToDelete],
       scope,
     });
+    this.emitToUser(targetUserId, WS_EVENTS.CHAT_LIST_REFRESH, { chatId });
 
     return {
       ok: true,
@@ -328,6 +439,9 @@ async onMessageView(
   const messages = await this.messagesRepo.find({
     where: { id: In(ids) },
     select: ["id", "sender_id"],
+    relations: {
+      chat: true,
+    },
   });
 
   console.log("📦 messages from DB:", messages);
@@ -341,6 +455,7 @@ async onMessageView(
     return { ok: true };
   }
   const senderId = Number(candidates[0].sender_id);
+  const chatId = Number((candidates[0].chat as any)?.id);
 
   for (const m of candidates) {
     if (Number(m.sender_id) !== senderId) {
@@ -364,9 +479,17 @@ async onMessageView(
   const room = `user:${senderId}`;
 
   this.server.to(room).emit(WS_EVENTS.MESSAGE_VIEWED, {
+    chatId,
     messageIds: candidateIds,
     viewedAt: viewedAt,
   });
+  this.emitToUser(viewerId, WS_EVENTS.MESSAGE_VIEWED, {
+    chatId,
+    messageIds: candidateIds,
+    viewedAt: viewedAt,
+  });
+  this.emitToUser(viewerId, WS_EVENTS.CHAT_LIST_REFRESH, { chatId });
+  this.emitToUser(senderId, WS_EVENTS.CHAT_LIST_REFRESH, { chatId });
 
   return { ok: true };
 }

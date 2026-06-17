@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ApiException } from "@/lib/exceptions/ApiException";
 import { verify } from "@/lib/auth/verify";
-import { cookies } from "next/headers";
+import { cookies } from "next/headers";  
 
 export async function POST(req: Request) {
     const { otherUserId, take, lastMessageId } = await req.json();

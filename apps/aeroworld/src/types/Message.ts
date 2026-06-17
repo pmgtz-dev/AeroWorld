@@ -8,6 +8,7 @@ export type Message = {
   isPinned: boolean;
   editedAt: string | null;
   createdAt: string;
+  createdAtFull: string;
   viewedAt: string | null,
   replyToMessageId: {
     id: number;

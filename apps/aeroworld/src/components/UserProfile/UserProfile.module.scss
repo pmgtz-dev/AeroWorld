@@ -9,11 +9,63 @@
   position: relative;
   height: 100%;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
-
 .profile-header{
   display:flex;
   align-items:center;
+}
+
+.profile-window-scroll{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y:auto;
+  overflow-x: hidden;
+  background-color: var(--body-bg-color);
+  width: 100%;
+  box-sizing: border-box;
+}
+@supports (-moz-appearance: none) {
+  .profile-window-scroll{
+    padding-right: 9px;
+  }
+}
+.profile-window-bottom{
+  flex: 0 0 24px;
+  height: 24px;
+  overflow: hidden;
+  background: linear-gradient(-45deg, rgba(161, 203, 255, 0) 80%, rgba(173, 201, 227, 0.5) 80.5%, rgb(173, 201, 227) 100%),
+              linear-gradient(270deg, #122c50 0%, #7090bb 80%);
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  padding: 3px 5px;
+  box-sizing: border-box;
+  border-top: black 1px solid;
+}
+.profile-window-bottom-action{
+  display: block;
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+.auto-width-button{
+  width: auto;
+  padding: 7px 15px 9px !important;
+  :global(.delete-option-glare){
+    width: 84%;
+    right: 8%;
+  }
+  &:disabled{
+    cursor: default;
+  }
 }
 
 .profile-avatar img{
@@ -23,27 +75,447 @@
   border:2px solid #264969;
 }
 .interaction-buttons{
-  margin-right: auto;
+  justify-content: flex-end;
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: row;
+  gap: 3px;
+  margin-top: 5px;
+  padding: 0 5px;
+  margin-bottom: 10px;
 }
-.about-user-section{
-  padding: 15px;
+.edit-avatar-container{
+  margin: 15px 5px 0;
   display: flex;
   gap: 10px;
+  align-items: stretch;
+}
+.default-avatars-section{
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.default-avatars-rail{
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: hidden;
+  padding: 8px 0;
+  box-shadow: var(--inset-box-shadow);
+  border: solid 1px var(--window-border-color);
+  background: url('/images/background6.png'), white;
+  background-size: contain;
+  background-repeat: repeat-x;
+  &.disabled::after{
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(30, 39, 51, 0.24);
+    pointer-events: none;
+  }
+}
+.default-avatar-option{
+  position: relative;
+  width: 60px;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.28);
+  transition: width 180ms ease, box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease;
+  z-index: 0;
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  border: solid 1px var(--window-border-color);
+  &::before{
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.7), var(--inset-box-shadow);
+    background: rgba(128, 168, 206, 0.6);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  img{
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 50%;
+    transition: width 180ms ease, transform 180ms ease, opacity 180ms ease;
+  }
+  &.active{
+    width: 90px;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.34);
+    border: none;
+    &::before{
+      background: transparent;
+    }
+    img{
+      width: 78px;
+    }
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url("/images/circleframe2.png") no-repeat center / cover;
+      pointer-events: none;
+      z-index: 2;
+    }
+  }
+}
+.slide-left .default-avatar-option{
+  animation: avatar-slide-left 180ms ease;
+}
+.slide-right .default-avatar-option{
+  animation: avatar-slide-right 180ms ease;
+}
+@keyframes avatar-slide-left{
+  from{
+    transform: translateX(-16px);
+    opacity: 0.82;
+  }
+  to{
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes avatar-slide-right{
+  from{
+    transform: translateX(16px);
+    opacity: 0.82;
+  }
+  to{
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.default-avatars-controls{
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  &.disabled{
+    opacity: 0.7;
+    filter: grayscale(0.5);
+    pointer-events: none;
+  }
+}
+.selected-avatar-preview{
+  width: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  gap: 6px;
+  margin-right: 5px;
+}
+.selected-avatar-preview-button{
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  &:disabled{
+    cursor: default;
+  }
+}
+
+
+.selected-avatar-preview-empty{
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: #b7b7b7;
+  box-shadow: var(--inset-box-shadow);
+}
+
+.choose-from-gallery{
+  display: flex;
+  align-items: start;
+  gap: 4px;
+  color:#264969;
+  font-family: var(--font-opt2);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  &.inactive{
+    opacity: 0.6;
+  }
+}
+.choose-from-gallery-checkbox{
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  cursor: pointer;
+  &:checked{
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent url('/images/Sign002.ico') no-repeat center / contain;
+  }
+}
+.default-avatars-arrow{
+  width: 28px;
+  aspect-ratio: 1/1;
+  display: block;
+  object-fit: contain;
+  cursor: pointer;
+  
+  &:active{
+    transform: scale(1.09);
+  }
+  &.mirrored{
+    transform: scaleX(-1);
+    &:active{
+      transform: scaleX(-1) scale(1.09);
+    }
+  }
+}
+
+.about-user-container{
+  display: flex;
+  gap: 5px;
+  align-items: stretch;
+}
+.about-user-section{
+  display: flex;
+  flex: 1 1 75%;
+  gap: 5px;
+  padding: 15px 5px;
   flex-direction: column;
 }
 
+.date-of-birth{
+  width: 30%;
+  display: flex;
+  flex: 0 0 30%;
+  min-width: 127px;
+  height: fit-content;
+  flex-direction: column;
+  background: #ffffe0;
+  border: 1px groove #8d8d8d;
+  border-radius: 28px 28px 0 0;
+  box-shadow: var(--inset-box-shadow);
+  margin-right: 5px;
+}
+.date-of-birth-title{
+  padding: 0 10px;
+  height: 28px;
+  background: linear-gradient(to bottom,#fff4fb 0%,#df90b4 100%);
+  border-bottom: 1px solid #8d8d8d;
+  border-radius: 28px 28px 0 0;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+  box-shadow: 0px 2px 2px rgba(169, 138, 152, 0.4),
+              0px -1px 1px rgba(255, 255, 255, 0.6) inset;
+  font-family: Arial;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  align-content: center;
+  box-sizing: border-box;
+}
+.date-of-birth-bottom{
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 4px;
+}
+.calendar{
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #000000;
+  font-family: "Times New Roman", serif;
+  font-weight: 700;
+  font-size: 12px;
+}
+.calendar-top{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+}
+.calendar-nav-button{
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  padding: 0 2px 0 0;
+  border: 1px solid #c8c2a0;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, #fffef6 0%, #ece8c8 100%);
+  color: #5f5f5f;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+.calendar-title-block{
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+}
+.calendar-month-title{
+  font-size: 14px;
+  line-height: 1;
+}
+
+.calendar-weekdays{
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+}
+.calendar-weekday{
+  background: #b8d6f4;
+  text-align: center;
+  line-height: 1.1;
+}
+.calendar-grid{
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+}
+.calendar-day{
+  min-width: 0;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #000000;
+  font: inherit;
+  text-align: center;
+  line-height: 1;
+  cursor: pointer;
+}
+.calendar-day.outside-month{
+  cursor: default;
+}
+.calendar-day.selected{
+  border: 2px solid #000000;
+  text-indent: -1px;
+}
+.calendar-footer-nav{
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  line-height: 1;
+  span{
+    cursor: pointer;
+  }
+}
+.calendar-footer-row{
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  line-height: 1;
+}
+.calendar-date-inputs{
+  display: flex;
+  align-items: end;
+  gap: 1px;
+  &.disabled{
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+.birth-date-valid-sign{
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 9px;
+  height: 9px;
+  margin-left: 3px;
+  border-radius: 50%;
+  padding-top: 1px;
+  box-sizing: border-box;
+  background: #c00000;
+  color: #ffffff;
+  font-size: 7px;
+  line-height: 1;
+  font-weight: bold;
+  transform: translateY(-1px);
+  cursor: default;
+}
+.calendar-date-input{
+  display: block;
+  width: 13px;
+  height: 12px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid #000000;
+  outline: none;
+  background: transparent;
+  color: #000000;
+  font: inherit;
+  line-height: 12px;
+  box-sizing: border-box;
+  &::placeholder{
+    color: #000000;
+  }
+  &.year{
+    width: 25px;
+  }
+}
+.dot{
+  display: inline-block;
+  transform: translateY(1px);
+}
+.show-birth-year-block{
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 4px;
+  line-height: 1;
+  margin-top: 4px;
+  input{
+    margin-top: 2px;
+    cursor: pointer;
+  }
+  &.disabled{
+    opacity: 0.4;
+    cursor: default;
+    input{
+      cursor: default;
+    }
+  }
+}
 .about-user{
   border: 1px var(--window-border-color) solid;
   border-radius: 20px 20px 0 0;
   overflow: hidden;
+  height: fit-content;
+  &.birth-date{
+    width: fit-content;
+    align-self: flex-end;
+    .about-user-header{
+      border-bottom: 1px var(--window-border-color) solid;
+      color: white;
+      padding: 2px 15px;
+      background: linear-gradient(45deg, rgb(173, 201, 227) 0%, rgba(173, 201, 227, 0.5) 29.5%, rgba(161, 203, 255, 0) 30%),
+                  linear-gradient(270deg, #122c50 20%, #7090bb 100%);
+    }
+    .about-user-text{
+      box-shadow: var(--inset-box-shadow);
+      background: url('/images/polka-dot-blue.png') repeat left top;
+      background-size: 120% auto;
+    }
+  }
 }
 .about-user-header{
   padding: 2px 10px;
-  background: 
-  linear-gradient(45deg,rgba(161, 203, 255, 0) 80%, rgba(173, 201, 227, 0.5) 80.5%,rgb(173, 201, 227) 100% ),
-  linear-gradient(90deg, #122c50 0%, #7090bb 80%);
+  background: linear-gradient(45deg,rgba(161, 203, 255, 0) 80%, rgba(173, 201, 227, 0.5) 80.5%,rgb(173, 201, 227) 100% ),
+              linear-gradient(90deg, #122c50 0%, #7090bb 80%);
   font-family: var(--font-opt2);
   font-size: 14px;
 }
@@ -52,4 +524,69 @@
   color:#264969;
   font-family: var(--font-opt2);
   font-size: 14px;
+  background: white;
+}
+.about-user-input-wrap{
+  padding: 10px;
+  background: white;
+  box-shadow: var(--inset-box-shadow);
+}
+
+.about-user-single-line-input{
+  box-shadow: 3px 3px 2px rgba(68, 68, 68, 0.5);
+  min-width: none;
+  margin-bottom: 2px;
+  &::placeholder{
+    color: inherit;
+  }
+  &:last-of-type{
+    margin-bottom: 10px;
+  }
+}
+
+.about-user-input{
+  display: block;
+  margin: 0;
+  padding: 0;
+  color:#264969;
+  font-family: var(--font-opt2);
+  font-size: 14px;
+  line-height: 1.2;
+  width: 100%;
+  height: auto;
+  box-sizing: border-box;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  box-shadow: none;
+  overflow-y: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  &::placeholder{
+    color: inherit;
+  }
+  &:focus::placeholder{
+    color: transparent;
+  }
+}
+.set-background{
+  display: flex;
+  align-items: end;
+  gap: 6px;
+  padding: 0 5px 10px 5px;
+  img{
+    display: block;
+    width: 40px;
+    height: auto;
+    flex: 0 0 auto;
+    cursor: pointer;
+  }
+  span{
+    color:#000;
+    font-family: var(--font-opt2);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+  }
 }

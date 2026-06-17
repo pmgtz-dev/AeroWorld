@@ -30,8 +30,6 @@ const Login: FC = () => {
     if (!res.ok) {
       alert(data.message || "Ошибка!");
     } else {
-      alert("Успешный вход в аккаунт!");
-      //alert(JSON.stringify(data, null, 2));
       router.push("/home");
     }
 
