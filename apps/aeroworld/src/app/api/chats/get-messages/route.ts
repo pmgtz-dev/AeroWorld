@@ -22,13 +22,13 @@ export async function POST(req: Request) {
       return ApiException("UNAUTHORIZED");
     }
 
-    let chatRes = await fetch(`http://${process.env.API_DOM}:${process.env.API_PORT}/chats/get`, {
+    const chatRes = await fetch(`http://${process.env.API_DOM}:${process.env.API_PORT}/chats/get`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, otherUserId }),
     });
 
-    let chatData = await chatRes.json();
+    const chatData = await chatRes.json();
 
     if (!chatRes.ok) {
       return ApiException(chatData.code || "SERVER_ERROR", chatRes.status);
