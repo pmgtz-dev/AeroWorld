@@ -77,6 +77,7 @@ export default function HomePage() {
       idleTimer = setTimeout(() => {
         if (isActive) {
           isActive = false;
+          console.log("offline from timeout")
           emitOffline();
         }
       }, 60000*5);     // 5 минут бездействия = оффлайн
@@ -86,6 +87,7 @@ export default function HomePage() {
       if (document.hidden) {
         if (isActive) {
           isActive = false;
+          console.log("offline from document.hidden")
           emitOffline();
         }
         clearTimeout(idleTimer);
