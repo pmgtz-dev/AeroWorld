@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 
 type Props = {
   user: User;
-  showEditBadge?: boolean;
+  isSelf?: boolean;
 };
 
 type SettingsMenu = {
@@ -22,10 +22,10 @@ type SettingsMenu = {
   isPositioned: boolean;
 } | null;
 
-export default function PersonalInfoHeader({ user, showEditBadge = false }: Props) {
+export default function PersonalInfoHeader({ user, isSelf = false }: Props) {
   const { openEditProfile } = useEditProfileModal();
   const router = useRouter();
-  const [isOnline, setIsOnline] = useState(false);
+  const [isOnline, setIsOnline] = useState(isSelf);
   const [lastSeen, setLastSeen] = useState<Date | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl ?? null);
   const [settingsMenu, setSettingsMenu] = useState<SettingsMenu>(null);
@@ -65,7 +65,7 @@ export default function PersonalInfoHeader({ user, showEditBadge = false }: Prop
     const s = getSocket();
     if (!s.connected) s.connect();
 
-    setIsOnline(false);
+    setIsOnline(isSelf);
     setLastSeen(user.lastSeen ? new Date(user.lastSeen) : null);
 
     s.emit(WS_EVENTS.PRESENCE_GET, { userId: user.id }, (res: any) => {
@@ -91,10 +91,10 @@ export default function PersonalInfoHeader({ user, showEditBadge = false }: Prop
       s.off(WS_EVENTS.PRESENCE_ONLINE, onOnline);
       s.off(WS_EVENTS.PRESENCE_OFFLINE, onOffline);
     };
-  }, [user?.id, user?.lastSeen]);
+  }, [user?.id, user?.lastSeen, isSelf]);
 
   const openAvatarPicker = () => {
-    if (!showEditBadge) return;
+    if (!isSelf) return;
     playNavigationSound();
     avatarInputRef.current?.click();
   };
@@ -218,7 +218,7 @@ export default function PersonalInfoHeader({ user, showEditBadge = false }: Prop
   return (
     <div className={styles["NXKOuser-personal-info-section"]} ref={headerRef}>
       <audio ref={navigationStartRef} src="/audio/navigation_start.wav" preload="auto" />
-      { showEditBadge && (
+      { isSelf && (
       <img
         src="/images/CP051.ico"
         className={styles['settings']}
@@ -245,8 +245,8 @@ export default function PersonalInfoHeader({ user, showEditBadge = false }: Prop
       <div
         className="userpic-wrapper"
         onClick={openAvatarPicker}
-        title={showEditBadge ? "Выбрать аватарку" : ''}
-        style={{ cursor: showEditBadge ? "pointer" : "default", flexShrink: 0 }}
+        title={isSelf ? "Выбрать аватарку" : ''}
+        style={{ cursor: isSelf ? "pointer" : "default", flexShrink: 0 }}
       >
         <Image
           width={50}
@@ -261,7 +261,7 @@ export default function PersonalInfoHeader({ user, showEditBadge = false }: Prop
       <div className={styles["NXKOuser-userinfo"]}>
         <div className={styles["username-edit-row"]}>
           <div className={styles["NXKOuser-username"]}>{user.nickname || "user1800325200"}</div>
-          {showEditBadge && (
+          {isSelf && (
             <img
               src="/images/edit_profile.png"
               className={styles["username-edit-badge"]}

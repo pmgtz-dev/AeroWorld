@@ -10,7 +10,7 @@ dotenv.config({
 module.exports = {
   reactStrictMode: true,
   devIndicators: {
-    position: "bottom-left",
+    position: "bottom-left", 
   },
 };
 
