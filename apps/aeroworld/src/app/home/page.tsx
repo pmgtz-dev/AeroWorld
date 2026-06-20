@@ -146,7 +146,7 @@ export default function HomePage() {
         className={styles["myNXKO-left"]}
         style={{ width: `${sidebarWidth}%` }}
       >
-        <PersonalInfoHeader user={user} showEditBadge />
+        <PersonalInfoHeader user={user} isSelf />
         <ChatList />
         <div className={styles["blue-cyan-strip"]}></div>
         <AewoInfo />
