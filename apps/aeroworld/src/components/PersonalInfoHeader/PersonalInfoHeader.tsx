@@ -69,10 +69,9 @@ export default function PersonalInfoHeader({ user, isSelf = false }: Props) {
     setLastSeen(user.lastSeen ? new Date(user.lastSeen) : null);
 
     s.emit(WS_EVENTS.PRESENCE_GET, { userId: user.id }, (res: any) => {
-      console.log("PRESENCE_GET res:", res);
       if (!res?.ok) return;
-      console.log("i should be here");
-      setIsOnline(!!res.online);
+      console.log("i should be here, setIsOnline -", !!res.online);
+      if (!isSelf) setIsOnline(!!res.online);
     });
 
     const onOnline = (payload: any) => {
@@ -83,7 +82,6 @@ export default function PersonalInfoHeader({ user, isSelf = false }: Props) {
     const onOffline = (payload: any) => {
       if (+payload.userId !== user.id) return;
       setIsOnline(false);
-      console.log("PRESENCE_OFFLINE event triggered")
       setLastSeen(new Date());
     };
 
